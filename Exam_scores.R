@@ -3,8 +3,9 @@
 setwd("~/GitHub/Exams")
 
 #import dataset
-scores <- read_csv("scores.csv")
+scores <- read.csv("scores.csv")
 
+scores$Test_diff2 <- (scores$FinalExam - (2*scores$Pretest))
 
 scores_low <- scores[which(scores$PreCat=='Low'), ]
 scores_med <- scores[which(scores$PreCat=='Medium'), ]
@@ -12,7 +13,9 @@ scores_high <- scores[which(scores$PreCat=='High'), ]
 
 scores_ml <- scores[which(scores$PreCat=='Low' | scores$PreCat=='Medium'), ]
 
-scores$Test_diff2 <- (scores$FinalExam - (2*scores$Pretest))
+scores_grp <- scores[which(scores$Treatment=='Group' | scores$Treatment=='Reg'), ]
+
+
 
 #look for correlations
 source("~/GitHub/corrPlot_v2/corrPlot_v2.R")
@@ -114,7 +117,7 @@ ggplot(data = scores, aes(Treatment, Test_diff2)) +
 
 ggplot(data = scores, aes(Treatment, LTSR_diff)) + 
   geom_boxplot(aes(color = Treatment)) + 
-  #facet_grid(.~ Grade) +
+  facet_grid(.~ Grade) +
   theme_bw() +
   scale_color_manual(values = wes_palette("Darjeeling")) 
 
@@ -155,6 +158,8 @@ modx <- lm(Examtotal ~ Treatment + Pretest + PreLTSR + Homework_Total + Particip
            + Writing_Total + FinalExam, scores)
 summary(modx)
 anova(modx)
+TukeyHSD(aov(Examtotal ~ Treatment + Pretest + PreLTSR + Homework_Total + Participation_Total 
+             + Writing_Total + FinalExam, scores), "Treatment")
 ###SIGNIFICANT!
 
 modxre <- lm(Examtotal ~ Treatment + Pretest + PreLTSR, scores)
@@ -178,7 +183,10 @@ medscores <- scores %>% group_by(Treatment) %>% summarise(medPreTest = 2*median(
                                              medPreMate = median(PreMATE, na.rm = TRUE),
                                              medFinal = median(FinalExam, na.rm = TRUE),
                                              medPostLTSR = median(PostLTSR, na.rm = TRUE),
-                                             medPostMate = median(PostMATE, na.rm = TRUE))
+                                             medPostMate = median(PostMATE, na.rm = TRUE),
+                                             medTestDiff = median(Test_diff2, na.rm = TRUE),
+                                             medLTSRDiff = median(LTSR_diff, na.rm = TRUE),
+                                             medMateDiff = median(MATE_diff, na.rm = TRUE))
 
 
 
@@ -203,7 +211,7 @@ p4 <- ggplot(data = scores, aes(Treatment, FinalExam))  + geom_violin(aes(color=
 p5 <- ggplot(data = scores, aes(Treatment, PostLTSR))  + geom_violin(aes(color=Treatment)) + geom_boxplot(width=.1, aes(color=Treatment)) + theme_bw() + scale_color_manual(values = wes_palette("Darjeeling"))  + theme(legend.position="none") + scale_y_continuous(limits=c(2,24))
 p6 <- ggplot(data = scores, aes(Treatment, PostMATE))  + geom_violin(aes(color=Treatment)) + geom_boxplot(width=.1, aes(color=Treatment)) + theme_bw() + scale_color_manual(values = wes_palette("Darjeeling"))+ theme(legend.position="none") + scale_y_continuous(limits=c(39,100))
 
-source("~/Documents/GitHub/Exams/multiplot.R")
+source("~/GitHub/Exams/multiplot.R")
 
 multiplot(p1, p4, p2, p5, p3, p6, cols=3)
 multiplot(p1, p2, p3, p4, p5, p6, cols=2)
@@ -218,6 +226,69 @@ modsr <- lm(PostLTSR ~ Treatment, scores)
 summary(modsr)
 anova(modsr)
 ###SIGNIFICANT!
+
+
+##LOOKING ONLY AT GROUP VS REG
+modsrgrp <- lm(PostLTSR ~ Treatment, scores_grp)
+summary(modsrgrp)
+anova(modsrgrp)
+###SIGNIFICANT!
+
+p2 <- ggplot(data = scores_grp, aes(Treatment, PreLTSR)) + geom_violin(aes(color=Treatment)) + geom_boxplot(width=.1, aes(color=Treatment)) + theme_bw() + scale_color_manual(values = wes_palette("Darjeeling")) + theme(legend.position="none") + scale_y_continuous(limits=c(2,24))
+p5 <- ggplot(data = scores_grp, aes(Treatment, PostLTSR))  + geom_violin(aes(color=Treatment)) + geom_boxplot(width=.1, aes(color=Treatment)) + theme_bw() + scale_color_manual(values = wes_palette("Darjeeling"))  + theme(legend.position="none") + scale_y_continuous(limits=c(2,24))
+pltsr <- ggplot(data = scores_grp, aes(Treatment, LTSR_diff))  + geom_violin(aes(color=Treatment)) + geom_boxplot(width=.1, aes(color=Treatment)) + theme_bw() + scale_color_manual(values = wes_palette("Darjeeling"))  + theme(legend.position="none") + scale_y_continuous(limits=c(0,24))
+
+scores_grp %>% group_by(Treatment) %>% summarise(medPreTest = 2*median(Pretest, na.rm = TRUE), 
+                                             medPreLTSR = median(PreLTSR, na.rm = TRUE), 
+                                             medFinal = median(FinalExam, na.rm = TRUE),
+                                             medPostLTSR = median(PostLTSR, na.rm = TRUE),
+                                             medTestDiff = median(Test_diff2, na.rm = TRUE),
+                                             medLTSRDiff = median(LTSR_diff, na.rm = TRUE))
+
+scores_grp %>% group_by(Treatment) %>% summarise(minLTSRDiff = min(LTSR_diff, na.rm = TRUE),
+                                                 medLTSRDiff = median(LTSR_diff, na.rm = TRUE),
+                                                 maxLTSRDiff = max(LTSR_diff, na.rm = TRUE))
+
+modsrgrp2 <- lm(LTSR_diff ~ Treatment, scores_grp)
+summary(modsrgrp2)
+anova(modsrgrp2)
+
+modsgrpr3 <- lm(PostLTSR ~ PreLTSR + Treatment, scores_grp)
+summary(modsgrpr3)
+anova(modsgrpr3)
+
+
+
+p1 <- ggplot(data = scores_grp, aes(Treatment, 2*Pretest)) + geom_violin(aes(color=Treatment)) + geom_boxplot(width=.1, aes(color=Treatment)) + theme_bw() + scale_color_manual(values = wes_palette("Darjeeling")) + theme(legend.position="none") + scale_y_continuous(limits=c(35,215)) + ylab("PreTest")
+p4 <- ggplot(data = scores_grp, aes(Treatment, FinalExam))  + geom_violin(aes(color=Treatment)) + geom_boxplot(width=.1, aes(color=Treatment)) + theme_bw() + scale_color_manual(values = wes_palette("Darjeeling"))+ theme(legend.position="none") + scale_y_continuous(limits=c(35,215))+ ylab("PostTest")
+ptd <- ggplot(data = scores_grp, aes(Treatment, Test_diff2))  + geom_violin(aes(color=Treatment)) + geom_boxplot(width=.1, aes(color=Treatment)) + theme_bw() + scale_color_manual(values = wes_palette("Darjeeling"))+ theme(legend.position="none") + scale_y_continuous(limits=c(35,215))+ ylab("TestDiff")
+multiplot(p1, p4, ptd, cols=3)
+
+anova(lm(LTSR_diff ~ Treatment, scores_grp))
+
+anova(lm(Test_diff2 ~ Treatment, scores_grp))
+
+anova(lm(Test_diff2 ~ Treatment + Grade, scores_grp))
+anova(lm(Test_diff2 ~ Grade + Treatment, scores_grp))
+
+anova(lm(Test_diff2 ~ Treatment, scores_grp[which(scores_grp$Grade=='A'), ]))
+anova(lm(Test_diff2 ~ Treatment, scores_grp[which(scores_grp$Grade=='B'), ]))
+anova(lm(Test_diff2 ~ Treatment, scores_grp[which(scores_grp$Grade=='C'), ]))
+anova(lm(Test_diff2 ~ Treatment, scores_grp[which(scores_grp$Grade=='D'), ]))
+anova(lm(Test_diff2 ~ Treatment, scores_grp[which(scores_grp$Grade=='F'), ]))
+
+scores_grp %>% group_by(Treatment, Grade) %>% summarise(medTestDiff = 2*median(Test_diff2, na.rm = TRUE))
+
+TukeyHSD(aov(Test_diff2 ~ Treatment + Grade, scores_grp), "Grade")
+
+
+ggplot(data = scores_grp, aes(Treatment, Test_diff2)) + 
+  geom_boxplot(aes(color = Treatment)) + 
+  facet_grid(.~ Grade) +
+  labs(y = "Pre/Post-Test Difference") +
+  theme_bw() +
+  scale_color_manual(values = wes_palette("Darjeeling"))  #colors
+
 
 
 anova(lm(Pretest ~ Treatment, scores))
